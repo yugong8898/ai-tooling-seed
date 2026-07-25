@@ -4,9 +4,9 @@
 
 本目录为 Cursor 模块化规则（`.mdc`），由原来单文件 `.cursorrules` 重构而来。
 
-- **旧形态**：根目录单文件 `templates/.cursorrules`（仅内联技术栈索引 + 指针）
+- **旧形态**：根目录单文件 `.cursorrules`（仅内联技术栈索引 + 指针）
 - **新形态**：`.cursor/rules/*.mdc`（带 frontmatter，按 `core-/tech-/ref-` 分类）
-- ⚠️ 根目录 `.cursorrules` 已废弃（保留 `templates/.cursorrules.backup` 作历史参考）
+- ⚠️ 根目录 `.cursorrules` 已废弃（若从旧单文件迁移，原文件备份为根目录 `.cursorrules.backup`）
 
 ## 规则结构（模板，含 `<proj>` / `<项目名>` 占位，落地时替换）
 
