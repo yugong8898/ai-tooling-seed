@@ -1,0 +1,12 @@
+---
+description: <项目名> 技术栈索引指针，编码前须与 .md/prompts/stack-index.md 对齐
+alwaysApply: false
+---
+
+# 技术栈索引（指针）
+
+> 本文件为 Cursor 规则内的技术栈索引**指针**，完整详述以 `.md/prompts/stack-index.md` 与 `stack-<type>.md` 为唯一源（不在本文件重复）。
+
+- 子项目 → stack 文件映射见 `.md/prompts/stack-index.md`
+- 样式：`<Less/Sass 分用，勿混>`
+- 版本禁区：`<react-dom 16.x 勿升级；Umi2 禁升；SSR 禁顶层 window>`

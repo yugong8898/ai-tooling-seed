@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+
+# <项目名> 通用规范（Cursor 规则）
+
+## 语言规则
+- 回复使用中文
+- 必要时会明确要求英文
+
+## 综合开发规范
+- 提交遵循 Conventional Commits
+- 组件用函数式 + Hooks / `<script setup>`
+- 样式 kebab-case，CSS 属性顺序参考规范

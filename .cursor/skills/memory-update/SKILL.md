@@ -1,0 +1,19 @@
+---
+name: memory-update
+description: 整理与更新项目记忆/规则。触发："整理 memory"、"更新规则"、"沉淀结论"
+---
+
+# memory-update（记忆整理）
+
+## 触发场景
+- 把会话中的稳定结论沉淀为规则或知识库
+- 更新 `.md/prompts/`、`context/` 或维护手册相关约定
+
+## 工作流程
+1. 提取可复用结论（坑点/禁区/约定）
+2. 判定落点：技术栈→`.md/prompts/stack-*`；知识→`context/`；规范→`<proj>-project-rules.md`
+3. 写入并回链
+
+## 注意事项
+- 不重复技术栈事实到 `context/`
+- 改动维护手册须同步落地到实际项目文件（见手册原则 11）

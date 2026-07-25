@@ -1,0 +1,15 @@
+---
+alwaysApply: true
+---
+
+# <项目名> 项目规则指针
+
+## 代码提交规则
+- 无明确命令时不做任何代码提交操作
+- 只有在用户明确要求生成 commit 信息时才生成，否则不要主动生成
+- commit 信息规范参考本仓库 `commit-helper` 技能
+
+## 完整规范位置
+- 完整开发规范见 `.codebuddy/rules/<proj>-project-rules.md`（与 `.qoder/rules/` 同名文件内容一致）
+- 角色 prompt 见 `.md/prompts/role-*.md`
+- 技术栈详述唯一源见 `.md/prompts/stack-*.md`（本文件不重复，只做索引指针）

@@ -1,0 +1,17 @@
+---
+description: Vue 3 `<script setup>` 组件模板（<项目> 规范）
+---
+```vue
+<script setup lang="ts">
+// props / emits / 组合式逻辑
+</script>
+
+<template>
+  <div class="<comp>"><!-- ... --></div>
+</template>
+
+<style scoped>
+.<comp> { /* kebab-case */ }
+</style>
+```
+> 以实际项目约定为准。

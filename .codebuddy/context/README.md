@@ -1,0 +1,9 @@
+# Context 知识库（按需建）
+
+本目录存放项目专属知识库（直接维护，无统一源）：
+- `api-patterns.md`：接口约定与常见模式
+- `business-terms.md`：业务术语
+- `known-pitfalls.md`：已知坑点（含版本禁区）
+
+> 内容须为 `.md/prompts/stack-*` 之外的真实项目知识，不重复技术栈事实、不留空壳。
+> 改动须同步到 `.cursor/context/`（两处平行维护，保持一致）。
