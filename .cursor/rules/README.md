@@ -13,7 +13,8 @@
 ```
 .cursor/rules/
 ├── core-general-standards.mdc   ✅ 通用规范（始终应用）
-├── core-project-rules.mdc       ✅ 项目规则指针（始终应用，含 AI 协作与独立判断第八章）
+├── core-project-rules.mdc       ✅ 项目规则指针（始终应用）
+├── core-ai-collaboration.mdc    ✅ AI 协作与独立判断（始终应用，正文与 SSOT 一致）
 └── ref-tech-stack.mdc           ✅ 技术栈索引指针（智能应用）
 ```
 

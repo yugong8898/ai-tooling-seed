@@ -42,6 +42,3 @@ ai-tooling-seed/
 5. **填项目专属事实**：`role-*.md`、各 `SKILL.md` 里的 `<proj>` 占位与版本禁区、CDN 等，以实际代码为准。
 6. **落地文档**：把 `templates/AGENTS.md`、`templates/PROJECT-README.md` 复制为项目根 `AGENTS.md`/`README.md` 并填真实信息；`.cursor/rules/ref-tech-stack.mdc` 为技术栈索引指针（与 `.md/prompts/stack-index.md` 对齐，落地时填真实技术栈）；`.cursor/` 整体复制（含 `rules/` 模块化规则、`settings.json`/`extensions.json`）。
 7. **校验**：按手册第七章校验清单逐条核对（重点：rules/ 只放 project-rules.md，stack 不进 rules/）。
-
-## 与 wlyd/ 等已有项目的关系
-本种子**不依赖**任何外部项目。`wlyd/`/`bondee/`/`yd/` 若存在本地，仅作**可选对照示例**，非必需。所有标准以本目录内的《项目技术栈文档体系搭建与维护手册》为准。
