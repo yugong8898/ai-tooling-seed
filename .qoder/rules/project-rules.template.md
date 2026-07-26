@@ -7,6 +7,11 @@ alwaysApply: true
 > 本文件为 alwaysApply 综合开发规范，AI 启动时自动加载。技术栈详细事实见 `.md/prompts/stack-*`，不在此重复。
 > 本文件为 `.codebuddy/rules/project-rules.template.md` 的镜像，内容须保持一致。
 
+## 语言规则
+- 回复使用中文；必要时会明确要求英文。
+- **称呼探针（强制）**：每次回复必须使用称呼「<结尾称呼探针，如 wang 工>」，置于回复**末尾**、紧邻【规则对齐】标识之前一行。该称呼是「rules 已加载」的探针——用户重置上下文后，若回复末尾无该称呼，即说明 rules 未生效，须重新加载后再回复。
+> 复制本骨架后，将 `<结尾称呼探针，如 wang 工>` 替换为你实际使用的称呼，并与 AGENTS 的开头探针、三端 rules（codebuddy/qoder/cursor）保持一致。
+
 ## 技术栈索引指针
 - 索引：`.md/prompts/stack-index.md`（按文件路径归属子项目查对应技术栈文件）
 - ⚠️ 本仓库<不使用 Sass/SCSS / 同时使用 Sass 与 Less，按子项目而定>
