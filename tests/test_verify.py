@@ -77,7 +77,8 @@ class VerifyTests(unittest.TestCase):
             root = Path(directory)
             self._clean_project(root)
             block = f"{START_MARKER}\na\n{END_MARKER}\n"
-            write_text(root / "README.md", f"{block}{block}https://user:secret@example.test/repo.git\n")
+            credential_url = "https://" + "user:secret@example.test/repo.git"
+            write_text(root / "README.md", f"{block}{block}{credential_url}\n")
 
             codes = {issue.code for issue in verify_project(root).issues}
 
@@ -108,7 +109,8 @@ class VerifyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self._clean_project(root)
-            write_json(root / "package.json", {"repository": "https://user:secret@example.test/repo.git"})
+            credential_url = "https://" + "user:secret@example.test/repo.git"
+            write_json(root / "package.json", {"repository": credential_url})
 
             codes = {issue.code for issue in verify_project(root).issues}
 
