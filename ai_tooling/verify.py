@@ -10,7 +10,9 @@ from ai_tooling.render import load_manifest, render_generated_files
 
 
 WINDOWS_ILLEGAL = re.compile(r"[<>:\"\\|?*]")
-PLACEHOLDER = re.compile(r"\{\{[A-Z][A-Z0-9_]*\}\}|<项目名>|<proj>|<sub[^>]*>|<YYYY[^>]*>|\[占位符\]", re.I)
+GENERATOR_TOKEN = re.compile(r"\{\{([A-Z][A-Z0-9_]*)\}\}")
+PLACEHOLDER = re.compile(r"<项目名>|<proj>|<sub[^>]*>|<YYYY[^>]*>|\[占位符\]", re.I)
+ALLOWED_SOURCE_TOKENS = {"PROJECT_NAME", "PROJECT_SLUG"}
 STALE_PROJECT = re.compile(r"\b(?:wlyd|bondee|yd|siren|spatio)\b", re.I)
 CREDENTIAL_URL = re.compile(r"https?://[^/\s:@]+:[^@\s/]+@", re.I)
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
@@ -107,7 +109,10 @@ def verify_project(target: Path) -> VerificationResult:
         text = _text(path)
         if text is None:
             continue
-        if PLACEHOLDER.search(text):
+        tokens = {match.group(1) for match in GENERATOR_TOKEN.finditer(text)}
+        is_cursor_source = bool(relative.parts and relative.parts[0] == ".cursor")
+        has_bad_token = bool(tokens - ALLOWED_SOURCE_TOKENS) if is_cursor_source else bool(tokens)
+        if PLACEHOLDER.search(text) or has_bad_token:
             issues.append(VerificationIssue("UNRESOLVED_PLACEHOLDER", relative, "存在未解析模板占位符"))
         if STALE_PROJECT.search(text):
             issues.append(VerificationIssue("STALE_PROJECT_RESIDUE", relative, "默认产物包含旧项目标识"))

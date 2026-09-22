@@ -1,44 +1,85 @@
-# AI 工具配置种子脚手架（ai-tooling-seed）
+# AI Tooling Seed v2
 
-> 配套文档：本目录内的《项目技术栈文档体系搭建与维护手册》（**自包含标准，不依赖任何外部项目**）。
-> 本目录是**可复制的初始骨架**，用于换设备后 / 新项目快速补齐 AI 工具配置（CodeBuddy / Qoder / Cursor 三工具）。
+一个前端优先、零第三方依赖的 AI 项目配置脚手架。它先读取目标仓库中的真实配置，再安全合并 `.cursor/` 权威源，并生成 CodeBuddy、Qoder 和兼容 Prompt 文件。
 
-## 它解决什么
-- **不依赖 `wlyd/`、`bondee/`、`yd/` 等任何具体项目**即可落地整套 AI 工具配置。
-- 复制即用：内含通用技能、角色 prompt 骨架、项目规则模板、README/AGENTS 模板。
-- 你只需填「项目专属事实」（技术栈、版本禁区、CDN 等），**禁止脑补**。
+## 环境要求
 
-## 目录结构
-```
-ai-tooling-seed/
-├── README.md                              # 本说明（换设备 onboarding 流程）
-├── 项目技术栈文档体系搭建与维护手册.md     # 配套标准手册（自包含，本目录即种子）
-├── .md/prompts/                           # 技术栈 + 角色 prompt 源（填内容）
-│   ├── stack-index.md         # 索引模板
-│   ├── stack-<type>.md        # 单类技术栈模板
-│   └── role-*.md (11)         # 角色 prompt 骨架
-├── templates/                 # 项目级骨架模板（含 <proj> 占位）
-│   ├── AGENTS.md              # AI 协作指南模板（四张索引表）
-│   └── PROJECT-README.md      # 项目总览模板
-├── .codebuddy/                # 权威源
-│   ├── rules/project-rules.template.md
-│   ├── skills/ (7 个通用技能)
-│   └── snippets/ (4 个模板：react/vue 组件、api、number 格式化，按框架增删)
-├── .qoder/                    # 镜像 .codebuddy（rules + skills）
-└── .cursor/                   # 镜像（rules/skills/snippets/context/settings/extensions）
+- Python 3.9 或更高版本
+- Git（仅用于正常项目维护，CLI 不会自动提交或推送）
+
+## 快速开始
+
+```bash
+# 1. 只读识别项目
+python3 scripts/ai_tooling.py detect /path/to/project
+
+# 2. 预览全部文件操作，不写入
+python3 scripts/ai_tooling.py init /path/to/project --dry-run
+
+# 3. 初始化并自动合并
+python3 scripts/ai_tooling.py init /path/to/project
+
+# 4. 修改 .cursor 后刷新兼容文件
+python3 scripts/ai_tooling.py generate /path/to/project
+
+# 5. 校验完整性
+python3 scripts/ai_tooling.py verify /path/to/project
 ```
 
-## 换设备快速接收项目（六步）
-1. **放骨架**：把本种子整体复制到目标项目根（或 `git clone` 后重命名为项目目录）。
-2. **改名规则文件**：`.codebuddy/rules/project-rules.template.md` → `<proj>-project-rules.md`；`.qoder/rules/` 同。
-3. **镜像技能/片段**（`.codebuddy/` 为权威源）：
-   ```bash
-   mkdir -p .qoder/skills .cursor/skills .cursor/snippets
-   cp -r .codebuddy/skills/* .qoder/skills/
-   cp -r .codebuddy/skills/* .cursor/skills/
-   cp -r .codebuddy/snippets/* .cursor/snippets/
-   ```
-4. **填技术栈**（最关键，禁脑补）：编辑 `.md/prompts/stack-index.md` 与各 `stack-<type>.md`，先读各子项目 `package.json` 与 `*.less/*.scss/*.css` 核实框架/样式/版本禁区。
-5. **填项目专属事实**：`role-*.md`、各 `SKILL.md` 里的 `<proj>` 占位与版本禁区、CDN 等，以实际代码为准。
-6. **落地文档**：把 `templates/AGENTS.md`、`templates/PROJECT-README.md` 复制为项目根 `AGENTS.md`/`README.md` 并填真实信息；`.cursor/rules/ref-tech-stack.mdc` 为技术栈索引指针（与 `.md/prompts/stack-index.md` 对齐，落地时填真实技术栈）；`.cursor/` 整体复制（含 `rules/` 模块化规则、`settings.json`/`extensions.json`）。
-7. **校验**：按手册第七章校验清单逐条核对（重点：rules/ 只放 project-rules.md，stack 不进 rules/）。
+默认使用 `frontend` profile。非前端仓库可传入 `--profile generic`，只安装通用协作能力。
+
+## 安全模型
+
+- `detect` 和 `verify` 始终只读。
+- `init --dry-run` 展示 `CREATE / MERGE / UPDATE / UNCHANGED / CONFLICT`，不写文件。
+- 正式写入前，已有文件备份到 `.ai-tooling/backups/UTC时间/`。
+- README 与 AGENTS 只更新受控区块，区块外内容保持不变。
+- Cursor JSON 配置按键合并，目标项目已有值优先。
+- 无法安全识别的同名文件不会被覆盖。
+- 重复执行 `init` 是幂等的。
+
+## 权威源与生成物
+
+只编辑 `.cursor/`：
+
+```text
+.cursor/
+├── ai-tooling.json     # 项目识别结果、profile、策略
+├── rules/              # 模块化规则
+├── prompts/            # 技术栈与角色 Prompt
+├── skills/             # 可复用技能
+├── snippets/           # 代码片段
+├── context/            # 项目知识
+├── settings.json
+└── extensions.json
+```
+
+运行 `generate` 后生成：
+
+- `.codebuddy/`
+- `.qoder/`
+- `.md/prompts/`
+
+生成文件带有明确标记，直接修改会被 `verify` 报告为漂移。
+
+## 项目识别范围
+
+当前重点识别 React、Vue、Vite、Next.js、Umi、uni-app、Taro、Webpack、TypeScript、常见 UI/状态库和 CSS/Less/Sass。Python、Go、Java、Rust 只记录轻量项目标记，不生成重型后端规则。
+
+CLI 不推断 CDN、接口字段、业务约定、金额工具或依赖禁升规则；这些事实需要代码、正式文档或用户确认作为证据。
+
+## 开发与测试
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 scripts/ai_tooling.py verify .
+bash scripts/verify-rules-sync.sh .
+```
+
+架构设计和实施计划位于 `docs/superpowers/`，旧项目实践与历史事故记录位于 `docs/legacy/`。
+
+<!-- ai-tooling:start -->
+## 本仓库 AI 工具配置
+
+本仓库以 `.cursor/` 为唯一人工维护源，其他工具目录由生成器维护。
+<!-- ai-tooling:end -->

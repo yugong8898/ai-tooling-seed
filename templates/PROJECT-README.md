@@ -1,27 +1,9 @@
-# <项目名>
+# 项目名称
 
-<一句话定位>
+在受控区块外维护项目定位、安装、启动、构建、测试和发布说明。
 
-## 子项目技术栈
-| 子项目 | 技术栈 | 样式 |
-|--------|--------|------|
-| ... | ... | ... |
+<!-- ai-tooling:start -->
+## AI 工具配置
 
-## 仓库结构
-```
-<结构树>
-```
-
-## 快速开始
-```bash
-cd <子项目> && npm install && npm run dev
-```
-
-## 开发规范
-- <eslint / prettier / commitlint>
-
-## 三工具配置维护
-- CodeBuddy / Qoder / Cursor 的 AI 上下文由 `.md/prompts/` + `.codebuddy/` + `.qoder/` + `.cursor/`（`.cursor/rules/*.mdc` 模块化规则）提供，改动见《项目技术栈文档体系搭建与维护手册》。
-
-## 相关链接
-- <wiki / 设计稿 / 监控>
+本项目使用 `.cursor/` 作为唯一配置源。运行 `generate` 刷新其他工具的兼容文件。
+<!-- ai-tooling:end -->

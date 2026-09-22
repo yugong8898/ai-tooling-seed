@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import ast
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -12,6 +13,14 @@ from tests.helpers import write_json
 
 
 class CliTests(unittest.TestCase):
+    def test_runtime_sources_parse_as_python_39(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        sources = sorted((repository / "ai_tooling").glob("*.py")) + [repository / "scripts" / "ai_tooling.py"]
+
+        for source in sources:
+            with self.subTest(source=source.name):
+                ast.parse(source.read_text(encoding="utf-8"), filename=str(source), feature_version=(3, 9))
+
     def test_detect_prints_json_and_returns_zero(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory)

@@ -2,7 +2,7 @@
 description: API 请求方法模板（axios 风格）
 ---
 ```ts
-import request from '@/<proj>/utils/request';
+import request from '@/utils/request';
 
 export function <apiName>(params: <Req>) {
   return request.get('<path>', { params });

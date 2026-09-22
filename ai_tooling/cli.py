@@ -99,8 +99,13 @@ def _manifest_from_defaults(value: dict[str, object]) -> Manifest:
 def _canonical_source_operations(target: Path, manifest: Manifest) -> list[Operation]:
     operations: list[Operation] = []
     source_cursor = SEED_ROOT / ".cursor"
-    sources: list[Path] = [source_cursor / "settings.json", source_cursor / "extensions.json"]
-    for directory in CANONICAL_DIRECTORIES:
+    if manifest.profile == "frontend":
+        sources: list[Path] = [source_cursor / "settings.json", source_cursor / "extensions.json"]
+        directories = CANONICAL_DIRECTORIES
+    else:
+        sources = []
+        directories = ("rules", "skills", "context")
+    for directory in directories:
         root = source_cursor / directory
         if root.is_dir():
             sources.extend(path for path in root.rglob("*") if path.is_file() and path.name != ".DS_Store")
@@ -165,6 +170,16 @@ def _generation_operations(target: Path) -> list[Operation]:
     return _operations_for_generated(target, render_generated_files(target, target, manifest))
 
 
+def _print_verification(target: Path) -> int:
+    result = verify_project(target)
+    if result.ok:
+        print("OK: AI tooling 配置完整且与 .cursor 权威源一致")
+        return 0
+    for issue in result.issues:
+        print(f"{issue.code:<24} {issue.path}  {issue.message}")
+    return 1
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _parser()
     try:
@@ -188,7 +203,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 generation_operations = _generation_operations(target)
             _print_operations(generation_operations)
             generated_result = apply_operations(target, generation_operations, dry_run=args.dry_run)
-            return 1 if base_result.conflicts or generated_result.conflicts else 0
+            if base_result.conflicts or generated_result.conflicts:
+                return 1
+            return 0 if args.dry_run else _print_verification(target)
         if args.command == "generate":
             target = args.target.expanduser().resolve()
             operations = _generation_operations(target)
@@ -196,13 +213,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = apply_operations(target, operations, dry_run=args.dry_run)
             return 1 if result.conflicts else 0
         if args.command == "verify":
-            result = verify_project(args.target)
-            if result.ok:
-                print("OK: AI tooling 配置完整且与 .cursor 权威源一致")
-                return 0
-            for issue in result.issues:
-                print(f"{issue.code:<24} {issue.path}  {issue.message}")
-            return 1
+            return _print_verification(args.target)
     except (OSError, ValueError, MergeConflict, json.JSONDecodeError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2

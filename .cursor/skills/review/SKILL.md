@@ -1,20 +1,12 @@
 ---
 name: review
-description: 代码审查与改动风险检查。触发："帮我 review"、"检查改动"、"看看这个 PR"
+description: 审查当前 diff 的正确性、回归风险和规范偏离；用户要求 review 时使用
 ---
 
-# review（代码审查）
+# Review
 
-## 触发场景
-- 提交前审查 diff
-- 检查是否触碰版本禁区、违反开发规范
-
-## 工作流程
-1. 读取 `git diff` 与对应 `stack-<type>.md`
-2. 对照 `.codebuddy/rules/<proj>-project-rules.md` 与角色规范
-3. 输出问题清单（严重度 + 文件:行号 + 修复建议）
-
-## 注意事项
-- 结论基于真实 diff，不脑补
-- 标注触碰版本禁区的改动（如 react-dom 16.x 升禁区、Umi2 禁升）
-- 与 `role-reviewer` 互为等价（手动 `@role-reviewer.md` 多 Chat 场景用）
+1. 读取需求、相关规则、`git status` 和完整 diff。
+2. 逐文件检查逻辑、边界、异常、安全、性能、可访问性和测试。
+3. 搜索调用方和相邻实现，验证影响范围而不是猜测。
+4. 每个发现给出 P0/P1/P2、文件与行号、失败场景和最小修复建议。
+5. 只报告可执行问题；无问题时说明检查范围和剩余未验证项。

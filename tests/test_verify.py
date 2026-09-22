@@ -25,7 +25,7 @@ class VerifyTests(unittest.TestCase):
         )
         write_text(
             root / ".cursor" / "rules" / "core-base.mdc",
-            "---\nalwaysApply: true\n---\n\n# Demo\n",
+            "---\nalwaysApply: true\n---\n\n# {{PROJECT_NAME}} rules\n",
         )
         write_text(root / ".cursor" / "prompts" / "role-coder.md", "# Coder\n")
         managed = f"{START_MARKER}\nmanaged\n{END_MARKER}\n"

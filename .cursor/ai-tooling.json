@@ -6,7 +6,7 @@
   "detected": {
     "shape": "repository",
     "packages": [],
-    "backendMarkers": ["python"]
+    "backendMarkers": []
   },
   "pendingQuestions": []
 }
