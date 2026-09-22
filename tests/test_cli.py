@@ -34,6 +34,19 @@ class CliTests(unittest.TestCase):
         self.assertIn("ERROR", error.getvalue())
         self.assertNotIn("Traceback", error.getvalue())
 
+    def test_init_dry_run_reports_changes_without_writing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            write_json(project / "package.json", {"name": "demo", "dependencies": {"react": "18.3.0"}})
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                status = main(["init", str(project), "--dry-run"])
+
+            self.assertEqual(status, 0)
+            self.assertIn("CREATE", output.getvalue())
+            self.assertFalse((project / ".cursor" / "ai-tooling.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
