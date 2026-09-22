@@ -9,6 +9,7 @@ from typing import Sequence
 from ai_tooling.detect import detect_project
 from ai_tooling.merge import MergeConflict, Operation, apply_operations, merge_json_defaults, merge_managed_markdown
 from ai_tooling.render import GENERATED_MARKER, Manifest, load_manifest, render_generated_files, render_tokens
+from ai_tooling.verify import verify_project
 
 
 SEED_ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,8 @@ def _parser() -> argparse.ArgumentParser:
     generate = subcommands.add_parser("generate", help="从 .cursor 权威源刷新兼容文件")
     generate.add_argument("target", type=Path)
     generate.add_argument("--dry-run", action="store_true")
+    verify = subcommands.add_parser("verify", help="校验权威源、生成物和项目入口")
+    verify.add_argument("target", type=Path)
     return parser
 
 
@@ -192,6 +195,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_operations(operations)
             result = apply_operations(target, operations, dry_run=args.dry_run)
             return 1 if result.conflicts else 0
+        if args.command == "verify":
+            result = verify_project(args.target)
+            if result.ok:
+                print("OK: AI tooling 配置完整且与 .cursor 权威源一致")
+                return 0
+            for issue in result.issues:
+                print(f"{issue.code:<24} {issue.path}  {issue.message}")
+            return 1
     except (OSError, ValueError, MergeConflict, json.JSONDecodeError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2

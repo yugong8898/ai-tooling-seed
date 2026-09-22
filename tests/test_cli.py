@@ -75,6 +75,17 @@ class CliTests(unittest.TestCase):
                 (project / ".qoder" / "rules" / "demo-project-rules.md").read_bytes(),
             )
 
+    def test_verify_missing_manifest_returns_one_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = io.StringIO()
+
+            with redirect_stdout(output):
+                status = main(["verify", directory])
+
+            self.assertEqual(status, 1)
+            self.assertIn("MANIFEST", output.getvalue())
+            self.assertNotIn("Traceback", output.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

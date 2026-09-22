@@ -1,0 +1,96 @@
+from __future__ import annotations
+
+import tempfile
+import unittest
+from pathlib import Path
+
+from ai_tooling.merge import END_MARKER, START_MARKER
+from ai_tooling.render import load_manifest, render_generated_files
+from ai_tooling.verify import verify_project
+from tests.helpers import write_json, write_text
+
+
+class VerifyTests(unittest.TestCase):
+    def _clean_project(self, root: Path) -> None:
+        write_json(
+            root / ".cursor" / "ai-tooling.json",
+            {
+                "schemaVersion": 2,
+                "projectName": "demo",
+                "profile": "frontend",
+                "enabledPolicies": [],
+                "detected": {},
+                "pendingQuestions": [],
+            },
+        )
+        write_text(
+            root / ".cursor" / "rules" / "core-base.mdc",
+            "---\nalwaysApply: true\n---\n\n# Demo\n",
+        )
+        write_text(root / ".cursor" / "prompts" / "role-coder.md", "# Coder\n")
+        managed = f"{START_MARKER}\nmanaged\n{END_MARKER}\n"
+        write_text(root / "README.md", f"# Demo\n\n{managed}")
+        write_text(root / "AGENTS.md", f"# Agents\n\n{managed}")
+        manifest = load_manifest(root)
+        for relative, content in render_generated_files(root, root, manifest).items():
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+
+    def test_clean_generated_project_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._clean_project(root)
+
+            result = verify_project(root)
+
+            self.assertTrue(result.ok, result.issues)
+            self.assertEqual(result.issues, ())
+
+    def test_reports_generated_drift_and_missing_mirror(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._clean_project(root)
+            (root / ".codebuddy" / "rules" / "demo-project-rules.md").write_text("changed\n", encoding="utf-8")
+            (root / ".qoder" / "rules" / "demo-project-rules.md").unlink()
+
+            codes = {issue.code for issue in verify_project(root).issues}
+
+            self.assertIn("GENERATED_DRIFT", codes)
+            self.assertIn("MISSING_GENERATED", codes)
+
+    def test_reports_placeholder_illegal_filename_broken_link_and_residue(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._clean_project(root)
+            write_text(root / ".cursor" / "prompts" / "bad<name>.md", "# <项目名>\n[missing](nope.md)\nwlyd\n")
+
+            codes = {issue.code for issue in verify_project(root).issues}
+
+            self.assertIn("ILLEGAL_FILENAME", codes)
+            self.assertIn("UNRESOLVED_PLACEHOLDER", codes)
+            self.assertIn("BROKEN_LINK", codes)
+            self.assertIn("STALE_PROJECT_RESIDUE", codes)
+
+    def test_reports_duplicate_managed_block_and_credential_url(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._clean_project(root)
+            block = f"{START_MARKER}\na\n{END_MARKER}\n"
+            write_text(root / "README.md", f"{block}{block}https://user:secret@example.test/repo.git\n")
+
+            codes = {issue.code for issue in verify_project(root).issues}
+
+            self.assertIn("MANAGED_BLOCK_COUNT", codes)
+            self.assertIn("CREDENTIAL_URL", codes)
+
+    def test_missing_manifest_is_clean_error_not_exception(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            result = verify_project(Path(directory))
+
+            self.assertFalse(result.ok)
+            self.assertEqual(result.issues[0].code, "MANIFEST")
+
+
+if __name__ == "__main__":
+    unittest.main()
