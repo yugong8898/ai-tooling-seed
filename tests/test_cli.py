@@ -47,6 +47,34 @@ class CliTests(unittest.TestCase):
             self.assertIn("CREATE", output.getvalue())
             self.assertFalse((project / ".cursor" / "ai-tooling.json").exists())
 
+    def test_generate_writes_mirrors_from_cursor_source(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            write_json(
+                project / ".cursor" / "ai-tooling.json",
+                {
+                    "schemaVersion": 2,
+                    "projectName": "demo",
+                    "profile": "frontend",
+                    "enabledPolicies": [],
+                    "detected": {},
+                    "pendingQuestions": [],
+                },
+            )
+            (project / ".cursor" / "rules").mkdir(parents=True)
+            (project / ".cursor" / "rules" / "core-base.mdc").write_text(
+                "---\nalwaysApply: true\n---\n\n# Base\n", encoding="utf-8"
+            )
+
+            status = main(["generate", str(project)])
+
+            self.assertEqual(status, 0)
+            self.assertTrue((project / ".codebuddy" / "rules" / "demo-project-rules.md").is_file())
+            self.assertEqual(
+                (project / ".codebuddy" / "rules" / "demo-project-rules.md").read_bytes(),
+                (project / ".qoder" / "rules" / "demo-project-rules.md").read_bytes(),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 2,
+  "projectName": "ai-tooling-seed",
+  "profile": "frontend",
+  "enabledPolicies": [],
+  "detected": {
+    "shape": "repository",
+    "packages": [],
+    "backendMarkers": ["python"]
+  },
+  "pendingQuestions": []
+}
