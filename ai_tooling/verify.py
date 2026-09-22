@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ai_tooling.merge import END_MARKER, START_MARKER
-from ai_tooling.render import GENERATED_MARKER, load_manifest, render_generated_files
+from ai_tooling.render import load_manifest, render_generated_files
 
 
 WINDOWS_ILLEGAL = re.compile(r"[<>:\"\\|?*]")
@@ -135,8 +135,7 @@ def verify_project(target: Path) -> VerificationResult:
             if not path.is_file():
                 continue
             relative = path.relative_to(root)
-            text = _text(path)
-            if relative not in expected_paths and text is not None and GENERATED_MARKER in text:
+            if relative not in expected_paths:
                 issues.append(VerificationIssue("EXTRA_GENERATED", relative, "发现不再由 .cursor 生成的旧文件"))
 
     for json_path in (root / ".cursor").rglob("*.json"):

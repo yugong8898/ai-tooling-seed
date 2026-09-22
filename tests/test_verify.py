@@ -105,6 +105,18 @@ class VerifyTests(unittest.TestCase):
 
             self.assertIn("EXTRA_GENERATED", codes)
 
+    def test_reports_extra_binary_file_in_generated_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._clean_project(root)
+            binary = root / ".codebuddy" / "skills" / "obsolete" / "asset.bin"
+            binary.parent.mkdir(parents=True, exist_ok=True)
+            binary.write_bytes(b"\x00\xff\x10")
+
+            codes = {issue.code for issue in verify_project(root).issues}
+
+            self.assertIn("EXTRA_GENERATED", codes)
+
     def test_scans_credentials_outside_managed_roots(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

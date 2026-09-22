@@ -97,6 +97,25 @@ class ApplyOperationsTests(unittest.TestCase):
 
             self.assertFalse((outside / "rules" / "core.mdc").exists())
 
+    def test_rejects_symlink_inside_backup_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside_directory:
+            target = Path(directory)
+            outside = Path(outside_directory)
+            readme = target / "README.md"
+            readme.write_text("old\n", encoding="utf-8")
+            timestamp = "20260922T010203Z"
+            backup_slot = target / ".ai-tooling" / "backups" / timestamp
+            backup_slot.mkdir(parents=True)
+            (backup_slot / "README.md").symlink_to(outside / "escaped.md")
+            operation = Operation(Path("README.md"), "UPDATE", b"new\n", "test")
+            now = datetime(2026, 9, 22, 1, 2, 3, tzinfo=timezone.utc)
+
+            with self.assertRaises(MergeConflict):
+                apply_operations(target, [operation], dry_run=False, now=now)
+
+            self.assertFalse((outside / "escaped.md").exists())
+            self.assertEqual(readme.read_text(encoding="utf-8"), "old\n")
+
 
 if __name__ == "__main__":
     unittest.main()

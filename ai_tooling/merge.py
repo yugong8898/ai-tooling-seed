@@ -122,10 +122,17 @@ def apply_operations(
     if not dry_run and changed_operations:
         existing = [item for item in changed_operations if destinations[item.path].is_file()]
         if existing:
-            backup_root = root / ".ai-tooling" / "backups" / _timestamp(now)
+            timestamp = _timestamp(now)
+            backup_relative = Path(".ai-tooling") / "backups" / timestamp
+            backup_root = root / backup_relative
+            if backup_root.exists() or backup_root.is_symlink():
+                raise MergeConflict(f"备份目录已存在，拒绝复用：{backup_relative}")
+            backup_destinations = {
+                item.path: _safe_destination(root, backup_relative / item.path) for item in existing
+            }
             for item in existing:
                 source = destinations[item.path]
-                destination = backup_root / item.path
+                destination = backup_destinations[item.path]
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, destination)
         for item in changed_operations:
