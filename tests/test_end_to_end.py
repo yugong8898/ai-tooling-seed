@@ -98,6 +98,19 @@ class EndToEndTests(unittest.TestCase):
             self.assertEqual(status, 1)
             self.assertEqual(snapshot(project), before)
 
+    def test_extra_file_in_generated_root_leaves_target_completely_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            write_json(project / "package.json", {"name": "demo", "dependencies": {"react": "18.3.0"}})
+            write_text(project / "README.md", "# Existing\n")
+            write_text(project / ".codebuddy" / "team-notes.md", "# Team notes\n")
+            before = snapshot(project)
+
+            status = main(["init", str(project)])
+
+            self.assertEqual(status, 1)
+            self.assertEqual(snapshot(project), before)
+
 
 if __name__ == "__main__":
     unittest.main()

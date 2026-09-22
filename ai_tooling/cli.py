@@ -16,6 +16,7 @@ from ai_tooling.verify import verify_project
 
 SEED_ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_DIRECTORIES = ("rules", "prompts", "skills", "snippets", "context")
+GENERATED_DIRECTORIES = (Path(".codebuddy"), Path(".qoder"), Path(".md/prompts"))
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -153,6 +154,14 @@ def _operations_for_generated(target: Path, generated: dict[Path, bytes]) -> lis
             content = None
             reason = "同名文件不是 ai-tooling 生成物"
         operations.append(Operation(relative, action, content, reason))
+    expected = set(generated)
+    extras: set[Path] = set()
+    for relative_root in GENERATED_DIRECTORIES:
+        directory = target / relative_root
+        if directory.is_dir():
+            extras.update(path.relative_to(target) for path in directory.rglob("*") if path.is_file())
+    for relative in sorted(extras - expected, key=Path.as_posix):
+        operations.append(Operation(relative, "CONFLICT", None, "生成目录包含非预期文件"))
     return operations
 
 
