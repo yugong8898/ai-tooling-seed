@@ -72,6 +72,32 @@ class EndToEndTests(unittest.TestCase):
             self.assertFalse((project / ".cursor" / "snippets").exists())
             self.assertTrue((project / ".cursor" / "rules" / "core-general-standards.mdc").is_file())
 
+    def test_existing_different_cursor_source_is_conflict(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            write_json(project / "package.json", {"name": "demo", "dependencies": {"react": "18.3.0"}})
+            existing_rule = project / ".cursor" / "rules" / "core-general-standards.mdc"
+            write_text(existing_rule, "---\nalwaysApply: true\n---\n\n# Team-owned rule\n")
+
+            status = main(["init", str(project)])
+
+            self.assertEqual(status, 1)
+            self.assertIn("Team-owned rule", existing_rule.read_text(encoding="utf-8"))
+
+    def test_generated_conflict_leaves_target_completely_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            write_json(project / "package.json", {"name": "demo", "dependencies": {"react": "18.3.0"}})
+            write_text(project / "README.md", "# Existing\n")
+            unmanaged = project / ".codebuddy" / "rules" / "demo-project-rules.md"
+            write_text(unmanaged, "# Team-owned rule\n")
+            before = snapshot(project)
+
+            status = main(["init", str(project)])
+
+            self.assertEqual(status, 1)
+            self.assertEqual(snapshot(project), before)
+
 
 if __name__ == "__main__":
     unittest.main()

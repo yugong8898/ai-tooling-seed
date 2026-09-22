@@ -71,6 +71,16 @@ class DetectProjectTests(unittest.TestCase):
             self.assertEqual(report["backendMarkers"], ["go", "python"])
             self.assertEqual(report["packages"], [])
 
+    def test_records_unknown_frontend_framework_as_pending_question(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            write_json(project / "package.json", {"name": "mystery-web", "dependencies": {"lodash": "^4.17.0"}})
+
+            report = detect_project(project)
+
+            self.assertTrue(report["pendingQuestions"])
+            self.assertIn("mystery-web", report["pendingQuestions"][0])
+
 
 if __name__ == "__main__":
     unittest.main()

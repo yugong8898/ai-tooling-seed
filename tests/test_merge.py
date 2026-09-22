@@ -85,6 +85,18 @@ class ApplyOperationsTests(unittest.TestCase):
             self.assertEqual(result.conflicts, 1)
             self.assertFalse((target / "unsafe.md").exists())
 
+    def test_rejects_symlinked_parent_that_escapes_target(self) -> None:
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside_directory:
+            target = Path(directory)
+            outside = Path(outside_directory)
+            (target / ".cursor").symlink_to(outside, target_is_directory=True)
+            operation = Operation(Path(".cursor/rules/core.mdc"), "CREATE", b"unsafe\n", "test")
+
+            with self.assertRaises(MergeConflict):
+                apply_operations(target, [operation], dry_run=False)
+
+            self.assertFalse((outside / "rules" / "core.mdc").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -164,11 +164,20 @@ def detect_project(target: Path) -> dict[str, object]:
     else:
         shape = "repository"
 
+    backend_markers = _backend_markers(root)
+    pending_questions = [
+        f"请确认 {package['name']} ({package['path']}) 使用的前端框架"
+        for package in packages
+        if not package["frameworks"]
+    ]
+    if not packages and not backend_markers:
+        pending_questions.append("未识别到 package.json 或后端项目标记，请确认项目类型")
+
     return {
         "projectName": _root_project_name(root, package_files),
         "root": str(root),
         "shape": shape,
         "packages": packages,
-        "backendMarkers": _backend_markers(root),
-        "pendingQuestions": [],
+        "backendMarkers": backend_markers,
+        "pendingQuestions": pending_questions,
     }

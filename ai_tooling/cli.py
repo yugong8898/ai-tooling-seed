@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Sequence
 
@@ -47,7 +49,7 @@ def _manifest_defaults(target: Path, profile: str, project_name: str | None) -> 
         "profile": profile,
         "enabledPolicies": [],
         "detected": {key: value for key, value in report.items() if key not in {"root", "projectName", "pendingQuestions"}},
-        "pendingQuestions": report["pendingQuestions"],
+        "pendingQuestions": report["pendingQuestions"] if profile == "frontend" else [],
     }
     return manifest_defaults, report
 
@@ -85,17 +87,6 @@ def _init_operations(target: Path, profile: str, project_name: str | None) -> li
     return operations
 
 
-def _manifest_from_defaults(value: dict[str, object]) -> Manifest:
-    return Manifest(
-        schema_version=2,
-        project_name=str(value["projectName"]),
-        profile=str(value["profile"]),
-        enabled_policies=tuple(str(item) for item in value["enabledPolicies"]),
-        detected=dict(value["detected"]),
-        pending_questions=tuple(value["pendingQuestions"]),
-    )
-
-
 def _canonical_source_operations(target: Path, manifest: Manifest) -> list[Operation]:
     operations: list[Operation] = []
     source_cursor = SEED_ROOT / ".cursor"
@@ -131,9 +122,9 @@ def _canonical_source_operations(target: Path, manifest: Manifest) -> list[Opera
             elif destination.read_bytes() == content:
                 action = "UNCHANGED"
             else:
-                action = "UNCHANGED"
-                content = destination.read_bytes()
-        operations.append(Operation(relative, action, content, "初始化 .cursor 权威源；已有同名源保留"))
+                action = "CONFLICT"
+                content = None
+        operations.append(Operation(relative, action, content, "初始化 .cursor 权威源；差异内容需人工确认"))
     return operations
 
 
@@ -170,6 +161,31 @@ def _generation_operations(target: Path) -> list[Operation]:
     return _operations_for_generated(target, render_generated_files(target, target, manifest))
 
 
+def _copy_cursor_for_planning(target: Path, staging: Path) -> None:
+    source = target / ".cursor"
+    if not source.exists():
+        return
+    for path in [source, *source.rglob("*")]:
+        if path.is_symlink():
+            raise MergeConflict(f"拒绝通过符号链接读写 .cursor：{path.relative_to(target)}")
+    shutil.copytree(source, staging / ".cursor")
+
+
+def _plan_init(target: Path, profile: str, project_name: str | None) -> list[Operation]:
+    base_operations = _init_operations(target, profile, project_name)
+    with tempfile.TemporaryDirectory(prefix="ai-tooling-plan-") as directory:
+        staging = Path(directory)
+        _copy_cursor_for_planning(target, staging)
+        cursor_base = [item for item in base_operations if item.path.parts[0] == ".cursor"]
+        apply_operations(staging, cursor_base, dry_run=False)
+        manifest = load_manifest(staging)
+        source_operations = _canonical_source_operations(target, manifest)
+        apply_operations(staging, source_operations, dry_run=False)
+        generated = render_generated_files(staging, target, manifest)
+        generation_operations = _operations_for_generated(target, generated)
+    return base_operations + source_operations + generation_operations
+
+
 def _print_verification(target: Path) -> int:
     result = verify_project(target)
     if result.ok:
@@ -190,21 +206,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "init":
             target = args.target.expanduser().resolve()
-            manifest_defaults, _ = _manifest_defaults(target, args.profile, args.project_name)
-            manifest = _manifest_from_defaults(manifest_defaults)
-            base_operations = _init_operations(target, args.profile, args.project_name)
-            source_operations = _canonical_source_operations(target, manifest)
-            _print_operations(base_operations + source_operations)
-            base_result = apply_operations(target, base_operations + source_operations, dry_run=args.dry_run)
-            if args.dry_run:
-                generated = render_generated_files(SEED_ROOT, target, manifest)
-                generation_operations = _operations_for_generated(target, generated)
-            else:
-                generation_operations = _generation_operations(target)
-            _print_operations(generation_operations)
-            generated_result = apply_operations(target, generation_operations, dry_run=args.dry_run)
-            if base_result.conflicts or generated_result.conflicts:
+            operations = _plan_init(target, args.profile, args.project_name)
+            _print_operations(operations)
+            if any(item.action == "CONFLICT" for item in operations):
                 return 1
+            apply_operations(target, operations, dry_run=args.dry_run)
             return 0 if args.dry_run else _print_verification(target)
         if args.command == "generate":
             target = args.target.expanduser().resolve()

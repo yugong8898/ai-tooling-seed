@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 from ai_tooling.merge import END_MARKER, START_MARKER
-from ai_tooling.render import load_manifest, render_generated_files
+from ai_tooling.render import GENERATED_MARKER, load_manifest, render_generated_files
 
 
 WINDOWS_ILLEGAL = re.compile(r"[<>:\"\\|?*]")
@@ -26,6 +27,8 @@ MANAGED_ROOTS = (
     Path(".qoder"),
     Path(".md/prompts"),
 )
+GENERATED_ROOTS = (Path(".codebuddy"), Path(".qoder"), Path(".md/prompts"))
+SCAN_SKIP_DIRECTORIES = {".git", ".worktrees", ".ai-tooling", "node_modules", "dist", "build", "vendor"}
 
 
 @dataclass(frozen=True)
@@ -64,6 +67,27 @@ def _text(path: Path) -> str | None:
         return None
 
 
+def _credential_files(root: Path) -> list[Path]:
+    completed = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z"],
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        relative_paths = [Path(value.decode("utf-8")) for value in completed.stdout.split(b"\0") if value]
+        return [root / relative for relative in relative_paths if (root / relative).is_file()]
+    return sorted(
+        (
+            path
+            for path in root.rglob("*")
+            if path.is_file()
+            and not path.is_symlink()
+            and not any(part in SCAN_SKIP_DIRECTORIES for part in path.relative_to(root).parts)
+        ),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
+
+
 def _check_links(root: Path, path: Path, text: str) -> list[VerificationIssue]:
     issues: list[VerificationIssue] = []
     for raw_target in MARKDOWN_LINK.findall(text):
@@ -89,12 +113,31 @@ def verify_project(target: Path) -> VerificationResult:
     except (OSError, ValueError, json.JSONDecodeError) as error:
         return VerificationResult((VerificationIssue("RENDER", Path(".cursor"), str(error)),))
 
+    if manifest.pending_questions:
+        questions = "；".join(str(item) for item in manifest.pending_questions)
+        issues.append(
+            VerificationIssue("PENDING_QUESTIONS", Path(".cursor/ai-tooling.json"), f"尚有待确认项：{questions}")
+        )
+
     for relative, content in expected.items():
         path = root / relative
         if not path.is_file():
             issues.append(VerificationIssue("MISSING_GENERATED", relative, "缺少从 .cursor 生成的文件"))
         elif path.read_bytes() != content:
             issues.append(VerificationIssue("GENERATED_DRIFT", relative, "生成物与 .cursor 权威源不一致"))
+
+    expected_paths = set(expected)
+    for relative_root in GENERATED_ROOTS:
+        generated_root = root / relative_root
+        if not generated_root.is_dir():
+            continue
+        for path in generated_root.rglob("*"):
+            if not path.is_file():
+                continue
+            relative = path.relative_to(root)
+            text = _text(path)
+            if relative not in expected_paths and text is not None and GENERATED_MARKER in text:
+                issues.append(VerificationIssue("EXTRA_GENERATED", relative, "发现不再由 .cursor 生成的旧文件"))
 
     for json_path in (root / ".cursor").rglob("*.json"):
         try:
@@ -116,10 +159,13 @@ def verify_project(target: Path) -> VerificationResult:
             issues.append(VerificationIssue("UNRESOLVED_PLACEHOLDER", relative, "存在未解析模板占位符"))
         if STALE_PROJECT.search(text):
             issues.append(VerificationIssue("STALE_PROJECT_RESIDUE", relative, "默认产物包含旧项目标识"))
-        if CREDENTIAL_URL.search(text):
-            issues.append(VerificationIssue("CREDENTIAL_URL", relative, "检测到 URL 内嵌凭据"))
         if path.suffix.lower() in {".md", ".mdc"}:
             issues.extend(_check_links(root, path, text))
+
+    for path in _credential_files(root):
+        text = _text(path)
+        if text is not None and CREDENTIAL_URL.search(text):
+            issues.append(VerificationIssue("CREDENTIAL_URL", path.relative_to(root), "检测到 URL 内嵌凭据"))
 
     for name in ("README.md", "AGENTS.md"):
         path = root / name

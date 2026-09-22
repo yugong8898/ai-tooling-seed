@@ -88,6 +88,21 @@ def _write_atomic(path: Path, content: bytes) -> None:
         raise
 
 
+def _safe_destination(root: Path, relative: Path) -> Path:
+    """Return a destination only when no nested symlink can escape ``root``."""
+    destination = root / relative
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise MergeConflict(f"拒绝通过符号链接写入目标目录外：{relative}")
+    try:
+        destination.resolve(strict=False).relative_to(root)
+    except ValueError as error:
+        raise MergeConflict(f"操作路径越界：{relative}") from error
+    return destination
+
+
 def apply_operations(
     target: Path,
     operations: Sequence[Operation],
@@ -100,19 +115,23 @@ def apply_operations(
     conflicts = sum(item.action == "CONFLICT" for item in operations)
     backup_root: Path | None = None
 
+    destinations = {item.path: _safe_destination(root, item.path) for item in operations}
+    if changed_operations:
+        _safe_destination(root, Path(".ai-tooling/backups"))
+
     if not dry_run and changed_operations:
-        existing = [item for item in changed_operations if (root / item.path).is_file()]
+        existing = [item for item in changed_operations if destinations[item.path].is_file()]
         if existing:
             backup_root = root / ".ai-tooling" / "backups" / _timestamp(now)
             for item in existing:
-                source = root / item.path
+                source = destinations[item.path]
                 destination = backup_root / item.path
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, destination)
         for item in changed_operations:
             if item.content is None:
                 raise ValueError(f"{item.action} 操作缺少内容：{item.path}")
-            _write_atomic(root / item.path, item.content)
+            _write_atomic(destinations[item.path], item.content)
 
     return ApplyResult(
         changed=len(changed_operations),
